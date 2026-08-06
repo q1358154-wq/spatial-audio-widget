@@ -1,0 +1,499 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spatial Audio Studio - 移动端全屏版</title>
+  <style>
+    :root {
+      --bg-color: #000000;
+      --panel-bg: rgba(28, 28, 30, 0.85);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --text-main: #f5f5f7;
+      --text-secondary: #86868b;
+      --accent-blue: #0071e3;
+      --accent-blue-hover: #0077ed;
+      --glass-blur: blur(25px);
+      --radius-medium: 14px;
+    }
+
+    body { 
+      margin: 0; 
+      padding: 16px;
+      min-height: 100vh;
+      background-color: var(--bg-color);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(0, 113, 227, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(255, 55, 95, 0.1) 0%, transparent 40%);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #dynamic-island {
+      position: relative;
+      margin-top: 10px;
+      margin-bottom: 20px;
+      width: 160px;
+      height: 32px;
+      background: #000000;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.08);
+      z-index: 1000;
+    }
+
+    .island-left, .island-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #fff;
+    }
+
+    .island-wave {
+      display: flex;
+      gap: 2px;
+      align-items: flex-end;
+      height: 12px;
+    }
+
+    .island-wave span {
+      width: 2px;
+      background: var(--accent-blue);
+      animation: wavePulse 1.2s infinite ease-in-out;
+    }
+    .island-wave span:nth-child(2) { animation-delay: 0.2s; }
+    .island-wave span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes wavePulse {
+      0%, 100% { height: 4px; }
+      50% { height: 12px; }
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 20px;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 0 0 1px var(--panel-border);
+      box-sizing: border-box;
+    }
+
+    h1 { 
+      font-size: 20px; 
+      font-weight: 600; 
+      margin: 0 0 4px 0; 
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    .group { 
+      margin: 14px 0; 
+    }
+
+    label { 
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px; 
+      font-size: 12px; 
+      color: var(--text-secondary); 
+    }
+
+    label span {
+      color: var(--text-main);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 输入框与按钮样式 */
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-medium);
+      color: var(--text-main);
+      font-size: 13px;
+      box-sizing: border-box;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .file-upload-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+      width: 100%;
+    }
+
+    .file-upload-wrapper input[type="file"] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    .file-upload-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-medium);
+      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    button { 
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-medium);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.primary { background: var(--accent-blue); border-color: transparent; color: #fff; }
+
+    .toggle-btn { 
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      color: var(--text-main);
+    }
+    .toggle-btn.active { 
+      background: rgba(255, 55, 95, 0.2);
+      border-color: rgba(255, 55, 95, 0.4);
+      color: #ff99ac;
+    }
+
+    input[type="range"] { 
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      outline: none;
+      margin: 8px 0;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      cursor: pointer;
+    }
+
+    #status {
+      padding: 10px 14px;
+      background: rgba(48, 209, 88, 0.15);
+      color: #30d158;
+      border: 1px solid rgba(48, 209, 88, 0.2);
+      border-radius: var(--radius-medium);
+      margin: 12px 0 8px 0;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    #status.error { background: rgba(255, 69, 58, 0.15); color: #ff453a; border-color: rgba(255, 69, 58, 0.2); }
+
+    .hint { 
+      font-size: 11px; 
+      color: var(--text-secondary); 
+      margin-top: 10px; 
+      line-height: 1.5;
+      border-top: 1px solid var(--panel-border);
+      padding-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="dynamic-island">
+  <div class="island-left">
+    <span>🎵</span>
+    <span id="island-title" style="font-weight: 500; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">就绪</span>
+  </div>
+  <div class="island-right">
+    <div class="island-wave" id="island-wave" style="display: none;"><span></span><span></span><span></span></div>
+    <span id="island-status-dot" style="width: 8px; height: 8px; background: #30d158; border-radius: 50%;"></span>
+  </div>
+</div>
+
+<div class="panel">
+  <h1>Spatial Audio Studio</h1>
+  <div class="subtitle">8D 环绕音效移动端</div>
+  
+  <!-- 方式一：本地文件上传 -->
+  <div class="group">
+    <label>1. 选择本地音乐文件</label>
+    <div class="file-upload-wrapper">
+      <div class="file-upload-btn" id="file-label-text">📁 选择文件 (MP3/WAV)</div>
+      <input type="file" id="file" accept=".mp3,.wav,.ogg">
+    </div>
+  </div>
+
+  <!-- 方式二：粘贴网络链接 -->
+  <div class="group">
+    <label>2. 或者粘贴音频直链 (URL)</label>
+    <div style="display: flex; gap: 6px;">
+      <input type="text" id="url-input" placeholder="https://example.com/music.mp3">
+      <button id="load-url" style="white-space: nowrap;">加载链接</button>
+    </div>
+  </div>
+  
+  <div class="group">
+    <button id="test" style="width: 100%; font-size: 11px; color: #86868b; background: rgba(255,255,255,0.03);">⚡ 快捷生成 10 秒测试白噪音</button>
+  </div>
+  
+  <div class="group">
+    <div class="btn-row">
+      <button id="play" class="primary" disabled>播放</button>
+      <button id="pause" disabled>暂停</button>
+      <button id="stop">停止</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <button id="toggle8d" class="toggle-btn" disabled>🌀 8D 环绕声空间化: 关闭</button>
+  </div>
+  
+  <div class="group">
+    <label>主音量 Master Gain <span id="vol">70</span>%</label>
+    <input type="range" id="volume" min="0" max="100" value="70" step="1">
+  </div>
+
+  <div class="group">
+    <label>8D 旋转频率 Orbit Speed <span id="speedVal">0.3</span> Hz</label>
+    <input type="range" id="speed" min="0.05" max="1.0" step="0.05" value="0.3">
+  </div>
+  
+  <div id="status">系统就绪：请上传文件或输入直链</div>
+  
+  <div class="hint">
+    💡 提示：粘贴链接必须是<strong>音频文件的直链</strong>（以 .mp3 等结尾），且目标服务器允许跨域（CORS）。
+  </div>
+</div>
+
+<script>
+let ctx = null, panner = null, gain = null;
+let buf = null, src = null, playing = false, pauseAt = 0, startedAt = 0;
+let is8DEnabled = false, animationId = null, angle = 0;
+
+const fileEl = document.getElementById('file');
+const fileLabelText = document.getElementById('file-label-text');
+const urlInput = document.getElementById('url-input');
+const loadUrlBtn = document.getElementById('load-url');
+const playEl = document.getElementById('play');
+const pauseEl = document.getElementById('pause');
+const stopEl = document.getElementById('stop');
+const testEl = document.getElementById('test');
+const toggle8dEl = document.getElementById('toggle8d');
+const volEl = document.getElementById('volume');
+const volTxt = document.getElementById('vol');
+const speedEl = document.getElementById('speed');
+const speedValTxt = document.getElementById('speedVal');
+const status = document.getElementById('status');
+const islandTitle = document.getElementById('island-title');
+const islandWave = document.getElementById('island-wave');
+const islandDot = document.getElementById('island-status-dot');
+
+function initAudioContext() {
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    panner = ctx.createPanner();
+    panner.panningModel = 'HRTF';
+    panner.distanceModel = 'inverse';
+    panner.refDistance = 1;
+    panner.maxDistance = 10000;
+    panner.rolloffFactor = 1;
+    panner.positionX.value = 0;
+    panner.positionY.value = 0;
+    panner.positionZ.value = 1;
+
+    gain = ctx.createGain();
+    gain.gain.value = volEl.value / 100;
+    panner.connect(gain);
+    gain.connect(ctx.destination);
+  }
+  if (ctx.state === 'suspended') ctx.resume();
+}
+
+function setStatus(msg, isError = false) {
+  status.textContent = msg;
+  status.className = isError ? 'error' : '';
+  islandTitle.textContent = isError ? '错误' : (playing ? '播放中' : '就绪');
+  islandDot.style.background = isError ? '#ff453a' : (playing ? '#0a84ff' : '#30d158');
+  islandWave.style.display = playing ? 'flex' : 'none';
+}
+
+function update8D() {
+  if (!is8DEnabled || !playing) return;
+  angle += parseFloat(speedEl.value) * 0.05;
+  panner.positionX.value = Math.cos(angle) * 2.2;
+  panner.positionZ.value = Math.sin(angle) * 2.2;
+  animationId = requestAnimationFrame(update8D);
+}
+
+// 1. 本地文件加载
+fileEl.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  initAudioContext();
+  setStatus('📂 读取文件中...');
+  fileLabelText.textContent = `📁 ${f.name}`;
+  
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      setStatus('⏳ 解码中...');
+      buf = await ctx.decodeAudioData(ev.target.result);
+      setStatus(`✓ 加载成功 (${Math.floor(buf.duration)}秒)`);
+      playEl.disabled = false;
+      testEl.disabled = false;
+      toggle8dEl.disabled = false;
+      pauseAt = 0;
+      islandTitle.textContent = f.name.substring(0, 6);
+    } catch(err) {
+      setStatus('✗ 解码失败: ' + err.message, true);
+    }
+  };
+  reader.readAsArrayBuffer(f);
+});
+
+// 2. 粘贴链接加载
+loadUrlBtn.addEventListener('click', async () => {
+  const url = urlInput.value.trim();
+  if (!url) return;
+  initAudioContext();
+  setStatus('📥 正在下载网络音频...');
+  
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('网络请求失败或跨域拦截');
+    const arrayBuffer = await response.arrayBuffer();
+    setStatus('⏳ 正在解码网络音频...');
+    buf = await ctx.decodeAudioData(arrayBuffer);
+    
+    setStatus(`✓ 链接加载成功 (${Math.floor(buf.duration)}秒)`);
+    playEl.disabled = false;
+    testEl.disabled = false;
+    toggle8dEl.disabled = false;
+    pauseAt = 0;
+    islandTitle.textContent = '网络音频';
+  } catch(err) {
+    setStatus('✗ 加载失败(多为跨域CORS限制): ' + err.message, true);
+  }
+});
+
+function playSource() {
+  initAudioContext();
+  if (src) { src.stop(); src.disconnect(); }
+  
+  src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(panner);
+  
+  src.onended = () => {
+    if (playing) {
+      stopAudioState();
+      setStatus('✓ 播放完毕');
+    }
+  };
+  
+  if (pauseAt > buf.duration) pauseAt = 0;
+  src.start(0, pauseAt);
+  startedAt = ctx.currentTime - pauseAt;
+  playing = true;
+  playEl.disabled = true;
+  pauseEl.disabled = false;
+  
+  islandWave.style.display = 'flex';
+  islandDot.style.background = '#0a84ff';
+  if (is8DEnabled) { cancelAnimationFrame(animationId); update8D(); }
+}
+
+function stopAudioState() {
+  playing = false;
+  pauseAt = 0;
+  playEl.disabled = false;
+  pauseEl.disabled = true;
+  cancelAnimationFrame(animationId);
+  islandWave.style.display = 'none';
+  islandDot.style.background = '#30d158';
+  if (panner) { panner.positionX.value = 0; panner.positionZ.value = 1; }
+}
+
+playEl.addEventListener('click', () => { if (buf) playSource(); });
+pauseEl.addEventListener('click', () => {
+  if (src && playing) {
+    src.stop(); src.disconnect(); src = null;
+    pauseAt = ctx.currentTime - startedAt;
+    stopAudioState();
+    setStatus('⏸ 已暂停');
+  }
+});
+stopEl.addEventListener('click', () => { if (src) { src.stop(); src.disconnect(); src = null; } stopAudioState(); setStatus('⏹ 已停止'); });
+
+toggle8dEl.addEventListener('click', () => {
+  is8DEnabled = !is8DEnabled;
+  toggle8dEl.textContent = is8DEnabled ? '🌀 8D 环绕声空间化: 开启' : '🌀 8D 环绕声空间化: 关闭';
+  toggle8dEl.className = is8DEnabled ? 'toggle-btn active' : 'toggle-btn';
+  if (is8DEnabled && playing) { cancelAnimationFrame(animationId); update8D(); }
+  else if (!is8DEnabled && panner) { cancelAnimationFrame(animationId); panner.positionX.value = 0; panner.positionZ.value = 1; }
+});
+
+testEl.addEventListener('click', () => {
+  initAudioContext();
+  if (src) { src.stop(); src.disconnect(); }
+  const len = ctx.sampleRate * 10;
+  const b = ctx.createAudioBuffer(1, len, ctx.sampleRate);
+  const d = b.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.3;
+  buf = b; pauseAt = 0; playSource();
+  setStatus('▶ 测试白噪音播放中');
+});
+
+volEl.addEventListener('input', e => { if (gain) gain.gain.value = e.target.value / 100; volTxt.textContent = e.target.value; });
+speedEl.addEventListener('input', e => { speedValTxt.textContent = e.target.value; });
+</script>
+
+</body>
+</html>

@@ -1,499 +1,319 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spatial Audio Studio - 移动端全屏版</title>
+  <title>完全独立双模播放器 - Ins 绿调高级版</title>
   <style>
-    :root {
-      --bg-color: #000000;
-      --panel-bg: rgba(28, 28, 30, 0.85);
-      --panel-border: rgba(255, 255, 255, 0.12);
-      --text-main: #f5f5f7;
-      --text-secondary: #86868b;
-      --accent-blue: #0071e3;
-      --accent-blue-hover: #0077ed;
-      --glass-blur: blur(25px);
-      --radius-medium: 14px;
-    }
+    body { background: #0b0f0e; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 16px; display: flex; flex-direction: column; align-items: center; }
+    .card { background: #131c18; padding: 20px; border-radius: 18px; width: 100%; max-width: 380px; margin-bottom: 16px; border: 1px solid rgba(52, 211, 153, 0.15); box-sizing: border-box; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    h3 { margin: 0; font-size: 14px; color: #34d399; font-weight: 600; letter-spacing: 0.5px; }
+    
+    /* 音浪浮动标志（Canvas画布样式） */
+    .visualizer { width: 45px; height: 20px; background: rgba(0,0,0,0.3); border-radius: 6px; display: block; border: 1px solid rgba(52, 211, 153, 0.1); }
 
-    body { 
-      margin: 0; 
-      padding: 16px;
-      min-height: 100vh;
-      background-color: var(--bg-color);
-      background-image: 
-        radial-gradient(circle at 10% 20%, rgba(0, 113, 227, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, rgba(255, 55, 95, 0.1) 0%, transparent 40%);
-      color: var(--text-main);
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      box-sizing: border-box;
-      -webkit-font-smoothing: antialiased;
-    }
+    input[type="file"] { width: 100%; margin: 8px 0; color: #a7f3d0; font-size: 12px; }
+    input[type="file"]::file-selector-button { background: #064e3b; color: #34d399; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+    input[type="file"]::file-selector-button:hover { background: #047857; color: #fff; }
 
-    #dynamic-island {
-      position: relative;
-      margin-top: 10px;
-      margin-bottom: 20px;
-      width: 160px;
-      height: 32px;
-      background: #000000;
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-      border: 1px solid rgba(255,255,255,0.08);
-      z-index: 1000;
+    button { width: 100%; padding: 8px; margin: 4px 0; background: #059669; color: #fff; border: none; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s ease; }
+    button:hover { opacity: 0.9; transform: translateY(-1px); }
+    button.off { background: #1f2923; color: #6b7280; border: 1px solid rgba(255,255,255,0.05); }
+    button:disabled { opacity: 0.25; transform: none; cursor: not-allowed; }
+    
+    video { width: 100%; border-radius: 10px; margin-top: 8px; background: #000; border: 1px solid rgba(52, 211, 153, 0.1); }
+    .tip { font-size: 11px; color: #34d399; margin-top: 8px; font-weight: 400; opacity: 0.9; }
+    
+    .control-row { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+    .btn-group { flex: 1; display: flex; flex-direction: column; }
+    
+    .volume-box { width: 45px; background: rgba(52, 211, 153, 0.03); border: 1px solid rgba(52, 211, 153, 0.1); border-radius: 12px; display: flex; flex-direction: column; align-items: center; padding: 6px 0; justify-content: space-between; height: 135px; box-sizing: border-box; }
+    .volume-box label { font-size: 9px; color: #6ee7b7; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .volume-box span { font-size: 10px; font-weight: 600; color: #a7f3d0; margin-top: 2px; }
+    .vertical-slider-wrapper { height: 85px; display: flex; align-items: center; justify-content: center; }
+    input[type="range"].vertical {
+      writing-mode: bt-lr;
+      -webkit-appearance: slider-vertical;
+      width: 6px; height: 80px; padding: 0; margin: 0;
+      background: rgba(52, 211, 153, 0.15); outline: none; border-radius: 4px;
     }
-
-    .island-left, .island-right {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      color: #fff;
-    }
-
-    .island-wave {
-      display: flex;
-      gap: 2px;
-      align-items: flex-end;
-      height: 12px;
-    }
-
-    .island-wave span {
-      width: 2px;
-      background: var(--accent-blue);
-      animation: wavePulse 1.2s infinite ease-in-out;
-    }
-    .island-wave span:nth-child(2) { animation-delay: 0.2s; }
-    .island-wave span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes wavePulse {
-      0%, 100% { height: 4px; }
-      50% { height: 12px; }
-    }
-
-    .panel {
-      background: var(--panel-bg);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-      padding: 20px;
-      border-radius: 20px;
-      width: 100%;
-      max-width: 500px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 0 0 1px var(--panel-border);
-      box-sizing: border-box;
-    }
-
-    h1 { 
-      font-size: 20px; 
-      font-weight: 600; 
-      margin: 0 0 4px 0; 
-    }
-
-    .subtitle {
-      font-size: 12px;
-      color: var(--text-secondary);
-      margin-bottom: 16px;
-    }
-
-    .group { 
-      margin: 14px 0; 
-    }
-
-    label { 
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px; 
-      font-size: 12px; 
-      color: var(--text-secondary); 
-    }
-
-    label span {
-      color: var(--text-main);
-      font-weight: 500;
-      font-variant-numeric: tabular-nums;
-    }
-
-    /* 输入框与按钮样式 */
-    input[type="text"] {
-      width: 100%;
-      padding: 10px 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--panel-border);
-      border-radius: var(--radius-medium);
-      color: var(--text-main);
-      font-size: 13px;
-      box-sizing: border-box;
-      outline: none;
-    }
-
-    input[type="text"]:focus {
-      border-color: var(--accent-blue);
-    }
-
-    .file-upload-wrapper {
-      position: relative;
-      overflow: hidden;
-      display: inline-block;
-      width: 100%;
-    }
-
-    .file-upload-wrapper input[type="file"] {
-      position: absolute;
-      left: 0;
-      top: 0;
-      opacity: 0;
-      width: 100%;
-      height: 100%;
-      cursor: pointer;
-    }
-
-    .file-upload-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 10px 14px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--panel-border);
-      border-radius: var(--radius-medium);
-      color: var(--text-main);
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    .btn-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-    }
-
-    button { 
-      padding: 10px 12px;
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text-main);
-      border: 1px solid var(--panel-border);
-      border-radius: var(--radius-medium);
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    button:disabled { opacity: 0.4; cursor: not-allowed; }
-    button.primary { background: var(--accent-blue); border-color: transparent; color: #fff; }
-
-    .toggle-btn { 
-      width: 100%;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--panel-border);
-      color: var(--text-main);
-    }
-    .toggle-btn.active { 
-      background: rgba(255, 55, 95, 0.2);
-      border-color: rgba(255, 55, 95, 0.4);
-      color: #ff99ac;
-    }
-
-    input[type="range"] { 
+    input[type="range"].vertical::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 100%;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 2px;
-      outline: none;
-      margin: 8px 0;
-    }
-
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #ffffff;
-      cursor: pointer;
-    }
-
-    #status {
-      padding: 10px 14px;
-      background: rgba(48, 209, 88, 0.15);
-      color: #30d158;
-      border: 1px solid rgba(48, 209, 88, 0.2);
-      border-radius: var(--radius-medium);
-      margin: 12px 0 8px 0;
-      font-size: 12px;
-      font-weight: 500;
-    }
-    #status.error { background: rgba(255, 69, 58, 0.15); color: #ff453a; border-color: rgba(255, 69, 58, 0.2); }
-
-    .hint { 
-      font-size: 11px; 
-      color: var(--text-secondary); 
-      margin-top: 10px; 
-      line-height: 1.5;
-      border-top: 1px solid var(--panel-border);
-      padding-top: 8px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: #34d399; cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-<div id="dynamic-island">
-  <div class="island-left">
-    <span>🎵</span>
-    <span id="island-title" style="font-weight: 500; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">就绪</span>
+<div class="card">
+  <div class="card-header">
+    <h3>🎵 独立音频区 (MP3 / WAV)</h3>
+    <canvas id="aCanvas" class="visualizer" width="45" height="20"></canvas>
   </div>
-  <div class="island-right">
-    <div class="island-wave" id="island-wave" style="display: none;"><span></span><span></span><span></span></div>
-    <span id="island-status-dot" style="width: 8px; height: 8px; background: #30d158; border-radius: 50%;"></span>
+  <input type="file" id="aFile" accept=".mp3,.wav">
+  <div class="control-row">
+    <div class="btn-group">
+      <button id="aPlay" disabled>播放音频</button>
+      <button id="aStop" disabled>停止音频</button>
+      <button id="aLoop" class="off" disabled>🔁 循环播放: 关</button>
+      <button id="aToggle" class="off" disabled>🌀 8D 环绕: 关闭</button>
+    </div>
+    <div class="volume-box">
+      <label>8D速度</label>
+      <div class="vertical-slider-wrapper">
+        <input type="range" id="aSpeed" class="vertical" min="1" max="10" value="4">
+      </div>
+      <span id="aSpeedVal">0.04</span>
+    </div>
+    <div class="volume-box">
+      <label>音量</label>
+      <div class="vertical-slider-wrapper">
+        <input type="range" id="aVol" class="vertical" min="0" max="100" value="80">
+      </div>
+      <span id="aVolVal">80%</span>
+    </div>
   </div>
+  <div class="tip" id="aStatus">等待选择音频...</div>
 </div>
 
-<div class="panel">
-  <h1>Spatial Audio Studio</h1>
-  <div class="subtitle">8D 环绕音效移动端</div>
-  
-  <!-- 方式一：本地文件上传 -->
-  <div class="group">
-    <label>1. 选择本地音乐文件</label>
-    <div class="file-upload-wrapper">
-      <div class="file-upload-btn" id="file-label-text">📁 选择文件 (MP3/WAV)</div>
-      <input type="file" id="file" accept=".mp3,.wav,.ogg">
+<div class="card">
+  <div class="card-header">
+    <h3>🎬 独立视频区 (MP4)</h3>
+    <canvas id="vCanvas" class="visualizer" width="45" height="20"></canvas>
+  </div>
+  <input type="file" id="vFile" accept=".mp4,.mov">
+  <video id="vEl" controls playsinline></video>
+  <div class="control-row" style="margin-top: 10px;">
+    <div class="btn-group">
+      <button id="vLoop" class="off" disabled>🔁 循环播放: 关</button>
+      <button id="vToggle" class="off" disabled>🌀 视频 8D: 关闭</button>
+    </div>
+    <div class="volume-box">
+      <label>8D速度</label>
+      <div class="vertical-slider-wrapper">
+        <input type="range" id="vSpeed" class="vertical" min="1" max="10" value="4">
+      </div>
+      <span id="vSpeedVal">0.04</span>
+    </div>
+    <div class="volume-box">
+      <label>音量</label>
+      <div class="vertical-slider-wrapper">
+        <input type="range" id="vVol" class="vertical" min="0" max="100" value="80">
+      </div>
+      <span id="vVolVal">80%</span>
     </div>
   </div>
-
-  <!-- 方式二：粘贴网络链接 -->
-  <div class="group">
-    <label>2. 或者粘贴音频直链 (URL)</label>
-    <div style="display: flex; gap: 6px;">
-      <input type="text" id="url-input" placeholder="https://example.com/music.mp3">
-      <button id="load-url" style="white-space: nowrap;">加载链接</button>
-    </div>
-  </div>
-  
-  <div class="group">
-    <button id="test" style="width: 100%; font-size: 11px; color: #86868b; background: rgba(255,255,255,0.03);">⚡ 快捷生成 10 秒测试白噪音</button>
-  </div>
-  
-  <div class="group">
-    <div class="btn-row">
-      <button id="play" class="primary" disabled>播放</button>
-      <button id="pause" disabled>暂停</button>
-      <button id="stop">停止</button>
-    </div>
-  </div>
-
-  <div class="group">
-    <button id="toggle8d" class="toggle-btn" disabled>🌀 8D 环绕声空间化: 关闭</button>
-  </div>
-  
-  <div class="group">
-    <label>主音量 Master Gain <span id="vol">70</span>%</label>
-    <input type="range" id="volume" min="0" max="100" value="70" step="1">
-  </div>
-
-  <div class="group">
-    <label>8D 旋转频率 Orbit Speed <span id="speedVal">0.3</span> Hz</label>
-    <input type="range" id="speed" min="0.05" max="1.0" step="0.05" value="0.3">
-  </div>
-  
-  <div id="status">系统就绪：请上传文件或输入直链</div>
-  
-  <div class="hint">
-    💡 提示：粘贴链接必须是<strong>音频文件的直链</strong>（以 .mp3 等结尾），且目标服务器允许跨域（CORS）。
-  </div>
+  <div class="tip" id="vStatus">等待选择视频...</div>
 </div>
 
 <script>
-let ctx = null, panner = null, gain = null;
-let buf = null, src = null, playing = false, pauseAt = 0, startedAt = 0;
-let is8DEnabled = false, animationId = null, angle = 0;
+// 音频逻辑
+let aCtx, aPanner, aGain, aAnalyser, aBuf, aSrc, aPlayState = false, a8d = false, aAngle = 0, aAnim, aLoopState = false, aSpeedStep = 0.04;
+const aFile = document.getElementById('aFile'), aPlay = document.getElementById('aPlay'), aStop = document.getElementById('aStop'), aLoop = document.getElementById('aLoop'), aToggle = document.getElementById('aToggle'), aStatus = document.getElementById('aStatus'), aVol = document.getElementById('aVol'), aVolVal = document.getElementById('aVolVal'), aSpeed = document.getElementById('aSpeed'), aSpeedVal = document.getElementById('aSpeedVal'), aCanvas = document.getElementById('aCanvas');
+const aCanvasCtx = aCanvas.getContext('2d');
 
-const fileEl = document.getElementById('file');
-const fileLabelText = document.getElementById('file-label-text');
-const urlInput = document.getElementById('url-input');
-const loadUrlBtn = document.getElementById('load-url');
-const playEl = document.getElementById('play');
-const pauseEl = document.getElementById('pause');
-const stopEl = document.getElementById('stop');
-const testEl = document.getElementById('test');
-const toggle8dEl = document.getElementById('toggle8d');
-const volEl = document.getElementById('volume');
-const volTxt = document.getElementById('vol');
-const speedEl = document.getElementById('speed');
-const speedValTxt = document.getElementById('speedVal');
-const status = document.getElementById('status');
-const islandTitle = document.getElementById('island-title');
-const islandWave = document.getElementById('island-wave');
-const islandDot = document.getElementById('island-status-dot');
-
-function initAudioContext() {
-  if (!ctx) {
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-    panner = ctx.createPanner();
-    panner.panningModel = 'HRTF';
-    panner.distanceModel = 'inverse';
-    panner.refDistance = 1;
-    panner.maxDistance = 10000;
-    panner.rolloffFactor = 1;
-    panner.positionX.value = 0;
-    panner.positionY.value = 0;
-    panner.positionZ.value = 1;
-
-    gain = ctx.createGain();
-    gain.gain.value = volEl.value / 100;
-    panner.connect(gain);
-    gain.connect(ctx.destination);
-  }
-  if (ctx.state === 'suspended') ctx.resume();
-}
-
-function setStatus(msg, isError = false) {
-  status.textContent = msg;
-  status.className = isError ? 'error' : '';
-  islandTitle.textContent = isError ? '错误' : (playing ? '播放中' : '就绪');
-  islandDot.style.background = isError ? '#ff453a' : (playing ? '#0a84ff' : '#30d158');
-  islandWave.style.display = playing ? 'flex' : 'none';
-}
-
-function update8D() {
-  if (!is8DEnabled || !playing) return;
-  angle += parseFloat(speedEl.value) * 0.05;
-  panner.positionX.value = Math.cos(angle) * 2.2;
-  panner.positionZ.value = Math.sin(angle) * 2.2;
-  animationId = requestAnimationFrame(update8D);
-}
-
-// 1. 本地文件加载
-fileEl.addEventListener('change', e => {
+aFile.addEventListener('change', async e => {
   const f = e.target.files[0];
   if (!f) return;
-  initAudioContext();
-  setStatus('📂 读取文件中...');
-  fileLabelText.textContent = `📁 ${f.name}`;
-  
-  const reader = new FileReader();
-  reader.onload = async ev => {
-    try {
-      setStatus('⏳ 解码中...');
-      buf = await ctx.decodeAudioData(ev.target.result);
-      setStatus(`✓ 加载成功 (${Math.floor(buf.duration)}秒)`);
-      playEl.disabled = false;
-      testEl.disabled = false;
-      toggle8dEl.disabled = false;
-      pauseAt = 0;
-      islandTitle.textContent = f.name.substring(0, 6);
-    } catch(err) {
-      setStatus('✗ 解码失败: ' + err.message, true);
-    }
-  };
-  reader.readAsArrayBuffer(f);
-});
-
-// 2. 粘贴链接加载
-loadUrlBtn.addEventListener('click', async () => {
-  const url = urlInput.value.trim();
-  if (!url) return;
-  initAudioContext();
-  setStatus('📥 正在下载网络音频...');
-  
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('网络请求失败或跨域拦截');
-    const arrayBuffer = await response.arrayBuffer();
-    setStatus('⏳ 正在解码网络音频...');
-    buf = await ctx.decodeAudioData(arrayBuffer);
+  if (!aCtx) {
+    aCtx = new (window.AudioContext || window.webkitAudioContext)();
+    aAnalyser = aCtx.createAnalyser();
+    aAnalyser.fftSize = 32;
+    aPanner = aCtx.createPanner(); aPanner.panningModel = 'HRTF';
+    aGain = aCtx.createGain(); aGain.gain.value = aVol.value / 100;
     
-    setStatus(`✓ 链接加载成功 (${Math.floor(buf.duration)}秒)`);
-    playEl.disabled = false;
-    testEl.disabled = false;
-    toggle8dEl.disabled = false;
-    pauseAt = 0;
-    islandTitle.textContent = '网络音频';
-  } catch(err) {
-    setStatus('✗ 加载失败(多为跨域CORS限制): ' + err.message, true);
+    aPanner.connect(aAnalyser);
+    aAnalyser.connect(aGain); 
+    aGain.connect(aCtx.destination);
   }
+  if (aCtx.state === 'suspended') aCtx.resume();
+  aStatus.textContent = "解码中...";
+  aBuf = await aCtx.decodeAudioData(await f.arrayBuffer());
+  aPlay.disabled = false; aStop.disabled = false; aLoop.disabled = false; aToggle.disabled = false;
+  aStatus.textContent = "音频就绪";
 });
 
-function playSource() {
-  initAudioContext();
-  if (src) { src.stop(); src.disconnect(); }
-  
-  src = ctx.createBufferSource();
-  src.buffer = buf;
-  src.connect(panner);
-  
-  src.onended = () => {
-    if (playing) {
-      stopAudioState();
-      setStatus('✓ 播放完毕');
+aPlay.addEventListener('click', () => {
+  if (aSrc) { aSrc.stop(); aSrc.disconnect(); }
+  aSrc = aCtx.createBufferSource(); 
+  aSrc.buffer = aBuf;
+  aSrc.loop = aLoopState;
+  aSrc.connect(aPanner); 
+  aSrc.start(0);
+  aPlayState = true; 
+  aStatus.textContent = "▶ 音频播放中";
+  if (a8d) runAOrbit();
+  drawAVisualizer();
+
+  aSrc.onended = () => {
+    if (!aLoopState && aPlayState) {
+      aPlayState = false;
+      cancelAnimationFrame(aAnim);
+      if (aPanner) { aPanner.positionX.value = 0; aPanner.positionZ.value = 1; }
+      aStatus.textContent = "音频播放完毕";
+      clearCanvas(aCanvasCtx, aCanvas);
     }
   };
-  
-  if (pauseAt > buf.duration) pauseAt = 0;
-  src.start(0, pauseAt);
-  startedAt = ctx.currentTime - pauseAt;
-  playing = true;
-  playEl.disabled = true;
-  pauseEl.disabled = false;
-  
-  islandWave.style.display = 'flex';
-  islandDot.style.background = '#0a84ff';
-  if (is8DEnabled) { cancelAnimationFrame(animationId); update8D(); }
+});
+
+aStop.addEventListener('click', () => {
+  if (aSrc) { aSrc.stop(); aSrc.disconnect(); aSrc = null; }
+  aPlayState = false; cancelAnimationFrame(aAnim);
+  if (aPanner) { aPanner.positionX.value = 0; aPanner.positionZ.value = 1; }
+  aStatus.textContent = "已停止";
+  clearCanvas(aCanvasCtx, aCanvas);
+});
+
+aLoop.addEventListener('click', () => {
+  aLoopState = !aLoopState;
+  aLoop.textContent = aLoopState ? "🔁 循环播放: 开" : "🔁 循环播放: 关";
+  aLoop.className = aLoopState ? "" : "off";
+  if (aSrc) { aSrc.loop = aLoopState; }
+});
+
+aToggle.addEventListener('click', () => {
+  a8d = !a8d;
+  aToggle.textContent = a8d ? "🌀 8D 环绕: 开启" : "🌀 8D 环绕: 关闭";
+  aToggle.className = a8d ? "" : "off";
+  if (a8d && aPlayState) runAOrbit();
+  else { cancelAnimationFrame(aAnim); if (aPanner) { aPanner.positionX.value = 0; aPanner.positionZ.value = 1; } }
+});
+
+aVol.addEventListener('input', e => {
+  const val = e.target.value;
+  aVolVal.textContent = val + '%';
+  if (aGain) aGain.gain.value = val / 100;
+});
+
+aSpeed.addEventListener('input', e => {
+  const val = e.target.value;
+  aSpeedStep = val * 0.01;
+  aSpeedVal.textContent = aSpeedStep.toFixed(2);
+});
+
+function runAOrbit() {
+  if (!a8d) return;
+  aAngle += aSpeedStep;
+  if (aPanner) { aPanner.positionX.value = Math.cos(aAngle) * 2; aPanner.positionZ.value = Math.sin(aAngle) * 2; }
+  aAnim = requestAnimationFrame(runAOrbit);
 }
 
-function stopAudioState() {
-  playing = false;
-  pauseAt = 0;
-  playEl.disabled = false;
-  pauseEl.disabled = true;
-  cancelAnimationFrame(animationId);
-  islandWave.style.display = 'none';
-  islandDot.style.background = '#30d158';
-  if (panner) { panner.positionX.value = 0; panner.positionZ.value = 1; }
-}
-
-playEl.addEventListener('click', () => { if (buf) playSource(); });
-pauseEl.addEventListener('click', () => {
-  if (src && playing) {
-    src.stop(); src.disconnect(); src = null;
-    pauseAt = ctx.currentTime - startedAt;
-    stopAudioState();
-    setStatus('⏸ 已暂停');
+function drawAVisualizer() {
+  if (!aPlayState) return;
+  requestAnimationFrame(drawAVisualizer);
+  const dataArray = new Uint8Array(aAnalyser.frequencyBinCount);
+  aAnalyser.getByteFrequencyData(dataArray);
+  
+  aCanvasCtx.clearRect(0, 0, aCanvas.width, aCanvas.height);
+  const barWidth = 3;
+  let x = 2;
+  for (let i = 0; i < 6; i++) {
+    let barHeight = (dataArray[i] / 255) * aCanvas.height;
+    aCanvasCtx.fillStyle = '#34d399';
+    aCanvasCtx.fillRect(x, aCanvas.height - barHeight, barWidth, barHeight);
+    x += 5;
   }
-});
-stopEl.addEventListener('click', () => { if (src) { src.stop(); src.disconnect(); src = null; } stopAudioState(); setStatus('⏹ 已停止'); });
+}
 
-toggle8dEl.addEventListener('click', () => {
-  is8DEnabled = !is8DEnabled;
-  toggle8dEl.textContent = is8DEnabled ? '🌀 8D 环绕声空间化: 开启' : '🌀 8D 环绕声空间化: 关闭';
-  toggle8dEl.className = is8DEnabled ? 'toggle-btn active' : 'toggle-btn';
-  if (is8DEnabled && playing) { cancelAnimationFrame(animationId); update8D(); }
-  else if (!is8DEnabled && panner) { cancelAnimationFrame(animationId); panner.positionX.value = 0; panner.positionZ.value = 1; }
-});
+// 视频逻辑
+let vCtx, vPanner, vGain, vAnalyser, vNode, v8d = false, vAngle = 0, vAnim, vSpeedStep = 0.04;
+const vFile = document.getElementById('vFile'), vEl = document.getElementById('vEl'), vLoop = document.getElementById('vLoop'), vToggle = document.getElementById('vToggle'), vStatus = document.getElementById('vStatus'), vVol = document.getElementById('vVol'), vVolVal = document.getElementById('vVolVal'), vSpeed = document.getElementById('vSpeed'), vSpeedVal = document.getElementById('vSpeedVal'), vCanvas = document.getElementById('vCanvas');
+const vCanvasCtx = vCanvas.getContext('2d');
 
-testEl.addEventListener('click', () => {
-  initAudioContext();
-  if (src) { src.stop(); src.disconnect(); }
-  const len = ctx.sampleRate * 10;
-  const b = ctx.createAudioBuffer(1, len, ctx.sampleRate);
-  const d = b.getChannelData(0);
-  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.3;
-  buf = b; pauseAt = 0; playSource();
-  setStatus('▶ 测试白噪音播放中');
+vFile.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  vEl.src = URL.createObjectURL(f);
+  vEl.load(); vLoop.disabled = false; vToggle.disabled = false;
+  vStatus.textContent = "视频已加载";
 });
 
-volEl.addEventListener('input', e => { if (gain) gain.gain.value = e.target.value / 100; volTxt.textContent = e.target.value; });
-speedEl.addEventListener('input', e => { speedValTxt.textContent = e.target.value; });
+vLoop.addEventListener('click', () => {
+  vEl.loop = !vEl.loop;
+  vLoop.textContent = vEl.loop ? "🔁 循环播放: 开" : "🔁 循环播放: 关";
+  vLoop.className = vEl.loop ? "" : "off";
+});
+
+vEl.addEventListener('play', () => {
+  if (!vCtx) {
+    vCtx = new (window.AudioContext || window.webkitAudioContext)();
+    vAnalyser = vCtx.createAnalyser();
+    vAnalyser.fftSize = 32;
+    vPanner = vCtx.createPanner(); vPanner.panningModel = 'HRTF';
+    vGain = vCtx.createGain(); vGain.gain.value = vVol.value / 100;
+    vNode = vCtx.createMediaElementSource(vEl);
+    
+    vNode.connect(vPanner); 
+    vPanner.connect(vAnalyser);
+    vAnalyser.connect(vGain); 
+    vGain.connect(vCtx.destination);
+  }
+  if (vCtx.state === 'suspended') vCtx.resume();
+  if (v8d) runVOrbit();
+  drawVVisualizer();
+  vStatus.textContent = "🎬 视频播放中 (带 8D)";
+});
+
+vEl.addEventListener('pause', () => {
+  cancelAnimationFrame(vAnim);
+  vStatus.textContent = "视频已暂停";
+  clearCanvas(vCanvasCtx, vCanvas);
+});
+
+vEl.addEventListener('ended', () => {
+  clearCanvas(vCanvasCtx, vCanvas);
+});
+
+vToggle.addEventListener('click', () => {
+  v8d = !v8d;
+  vToggle.textContent = v8d ? "🌀 视频 8D: 开启" : "🌀 视频 8D: 关闭";
+  vToggle.className = v8d ? "" : "off";
+  if (v8d && !vEl.paused) runVOrbit();
+  else { cancelAnimationFrame(vAnim); if (vPanner) { vPanner.positionX.value = 0; vPanner.positionZ.value = 1; } }
+});
+
+vVol.addEventListener('input', e => {
+  const val = e.target.value;
+  vVolVal.textContent = val + '%';
+  if (vGain) vGain.gain.value = val / 100;
+});
+
+vSpeed.addEventListener('input', e => {
+  const val = e.target.value;
+  vSpeedStep = val * 0.01;
+  vSpeedVal.textContent = vSpeedStep.toFixed(2);
+});
+
+function runVOrbit() {
+  if (!v8d) return;
+  vAngle += vSpeedStep;
+  if (vPanner) { vPanner.positionX.value = Math.cos(vAngle) * 2; vPanner.positionZ.value = Math.sin(vAngle) * 2; }
+  vAnim = requestAnimationFrame(runVOrbit);
+}
+
+function drawVVisualizer() {
+  if (vEl.paused || vEl.ended) return;
+  requestAnimationFrame(drawVVisualizer);
+  const dataArray = new Uint8Array(vAnalyser.frequencyBinCount);
+  vAnalyser.getByteFrequencyData(dataArray);
+  
+  vCanvasCtx.clearRect(0, 0, vCanvas.width, vCanvas.height);
+  const barWidth = 3;
+  let x = 2;
+  for (let i = 0; i < 6; i++) {
+    let barHeight = (dataArray[i] / 255) * vCanvas.height;
+    vCanvasCtx.fillStyle = '#34d399';
+    vCanvasCtx.fillRect(x, vCanvas.height - barHeight, barWidth, barHeight);
+    x += 5;
+  }
+}
+
+function clearCanvas(ctx, canvas) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
 </script>
-
 </body>
 </html>

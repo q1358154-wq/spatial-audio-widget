@@ -2,184 +2,533 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>完全独立双模播放器 - Ins 绿调高级版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>纯绿极客风格 - 音视频 100种音效与空间引擎旗舰版</title>
   <style>
-    body { background: #0b0f0e; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 16px; display: flex; flex-direction: column; align-items: center; }
-    .card { background: #131c18; padding: 20px; border-radius: 18px; width: 100%; max-width: 380px; margin-bottom: 16px; border: 1px solid rgba(52, 211, 153, 0.15); box-sizing: border-box; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    body { background: #030d08; color: #ecfdf5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12px; display: flex; flex-direction: column; align-items: center; box-sizing: border-box; margin: 0; }
+    .card { background: #071b12; padding: 16px; border-radius: 20px; width: 100%; max-width: 380px; margin-bottom: 14px; border: 1px solid rgba(16, 185, 129, 0.3); box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
     
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    h3 { margin: 0; font-size: 14px; color: #34d399; font-weight: 600; letter-spacing: 0.5px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    h3 { margin: 0; font-size: 13px; color: #34d399; font-weight: 600; letter-spacing: 0.5px; }
     
-    /* 音浪浮动标志（Canvas画布样式） */
-    .visualizer { width: 45px; height: 20px; background: rgba(0,0,0,0.3); border-radius: 6px; display: block; border: 1px solid rgba(52, 211, 153, 0.1); }
+    .visualizer { width: 40px; height: 18px; background: rgba(0,0,0,0.4); border-radius: 6px; display: block; border: 1px solid rgba(16, 185, 129, 0.25); }
 
-    input[type="file"] { width: 100%; margin: 8px 0; color: #a7f3d0; font-size: 12px; }
-    input[type="file"]::file-selector-button { background: #064e3b; color: #34d399; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: 0.2s; }
-    input[type="file"]::file-selector-button:hover { background: #047857; color: #fff; }
+    /* 雷达声场画布 */
+    .radar-container { position: relative; width: 100%; height: 110px; background: rgba(0,0,0,0.5); border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(16, 185, 129, 0.25); overflow: hidden; margin-bottom: 8px; }
+    canvas#radarCanvas { display: block; }
 
-    button { width: 100%; padding: 8px; margin: 4px 0; background: #059669; color: #fff; border: none; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s ease; }
+    /* 视频预览区 */
+    .video-preview-container { position: relative; width: 100%; height: 140px; background: rgba(0,0,0,0.7); border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(16, 185, 129, 0.25); overflow: hidden; margin-bottom: 8px; }
+    video { width: 100%; height: 100%; object-fit: contain; background: #000; border-radius: 12px; }
+
+    input[type="file"] { width: 100%; margin: 4px 0; color: #a7f3d0; font-size: 11px; }
+    input[type="file"]::file-selector-button { background: #047857; color: #a7f3d0; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; }
+
+    button { width: 100%; padding: 9px; margin: 3px 0; background: #059669; color: #fff; border: none; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s ease; }
     button:hover { opacity: 0.9; transform: translateY(-1px); }
-    button.off { background: #1f2923; color: #6b7280; border: 1px solid rgba(255,255,255,0.05); }
+    button.off { background: #0c261b; color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.15); }
+    button.export-btn { background: #047857; border: 1px solid #34d399; font-weight: 600; }
     button:disabled { opacity: 0.25; transform: none; cursor: not-allowed; }
+
+    .select-box { background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 7px 10px; margin-top: 6px; display: flex; align-items: center; justify-content: space-between; }
+    .select-box label { font-size: 11px; color: #a7f3d0; font-weight: 500; }
+    .select-box select { background: #03130a; color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 5px 8px; border-radius: 8px; font-size: 11px; outline: none; width: 58%; font-weight: 600; cursor: pointer; max-height: 140px; }
+
+    .dual-slider-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+    .slider-box { background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+    .slider-header { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #a7f3d0; }
+    .slider-header span:last-child { font-weight: 600; color: #d1fae5; }
     
-    video { width: 100%; border-radius: 10px; margin-top: 8px; background: #000; border: 1px solid rgba(52, 211, 153, 0.1); }
-    .tip { font-size: 11px; color: #34d399; margin-top: 8px; font-weight: 400; opacity: 0.9; }
-    
-    .control-row { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
-    .btn-group { flex: 1; display: flex; flex-direction: column; }
-    
-    .volume-box { width: 45px; background: rgba(52, 211, 153, 0.03); border: 1px solid rgba(52, 211, 153, 0.1); border-radius: 12px; display: flex; flex-direction: column; align-items: center; padding: 6px 0; justify-content: space-between; height: 135px; box-sizing: border-box; }
-    .volume-box label { font-size: 9px; color: #6ee7b7; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .volume-box span { font-size: 10px; font-weight: 600; color: #a7f3d0; margin-top: 2px; }
-    .vertical-slider-wrapper { height: 85px; display: flex; align-items: center; justify-content: center; }
-    input[type="range"].vertical {
-      writing-mode: bt-lr;
-      -webkit-appearance: slider-vertical;
-      width: 6px; height: 80px; padding: 0; margin: 0;
-      background: rgba(52, 211, 153, 0.15); outline: none; border-radius: 4px;
+    input[type="range"].horizontal {
+      -webkit-appearance: none; width: 100%; height: 5px; background: rgba(16, 185, 129, 0.2); border-radius: 3px; outline: none; margin: 3px 0;
     }
-    input[type="range"].vertical::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 12px; height: 12px; border-radius: 50%;
-      background: #34d399; cursor: pointer;
+    input[type="range"].horizontal::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #34d399; cursor: pointer; box-shadow: 0 0 10px rgba(52,211,153,0.9);
     }
+    
+    .tip { font-size: 10px; color: #34d399; margin-top: 6px; text-align: center; opacity: 0.9; }
   </style>
 </head>
 <body>
 
+<!-- === MP3 音频独立控制卡片 === -->
 <div class="card">
   <div class="card-header">
-    <h3>🎵 独立音频区 (MP3 / WAV)</h3>
-    <canvas id="aCanvas" class="visualizer" width="45" height="20"></canvas>
+    <h3>🎧 MP3 音频区 (100音效 + 8D引擎)</h3>
+    <canvas id="aCanvas" class="visualizer" width="40" height="18"></canvas>
   </div>
+  
+  <div class="radar-container">
+    <canvas id="radarCanvas" width="340" height="110"></canvas>
+  </div>
+
   <input type="file" id="aFile" accept=".mp3,.wav">
-  <div class="control-row">
-    <div class="btn-group">
-      <button id="aPlay" disabled>播放音频</button>
-      <button id="aStop" disabled>停止音频</button>
-      <button id="aLoop" class="off" disabled>🔁 循环播放: 关</button>
-      <button id="aToggle" class="off" disabled>🌀 8D 环绕: 关闭</button>
-    </div>
-    <div class="volume-box">
-      <label>8D速度</label>
-      <div class="vertical-slider-wrapper">
-        <input type="range" id="aSpeed" class="vertical" min="1" max="10" value="4">
+  
+  <div class="select-box">
+    <label>🎵 100音效选择：</label>
+    <select id="aFxSelect">
+      <option value="normal">1. 标准原声 (Normal)</option>
+      <option value="bass">2. 超重低音 (Bass Boost)</option>
+      <option value="xbass">3. 极致轰鸣低音 (Extreme Bass)</option>
+      <option value="subbass">4. 深潜次低音 (Sub-Bass Boom)</option>
+      <option value="vocal">5. 清澈人声 (Vocal Clear)</option>
+      <option value="podcast">6. 播客广播人声 (Podcast Warm)</option>
+      <option value="live">7. Live现场混响 (Concert Hall)</option>
+      <option value="cathedral">8. 宏大教堂空间 (Grand Cathedral)</option>
+      <option value="vinyl">9. 黑胶复古模拟 (Vinyl Warmth)</option>
+      <option value="lofi">10. 怀旧Lo-Fi (Lo-Fi Vintage)</option>
+      <option value="space8d">11. 8D环绕动态 (8D Space)</option>
+      <option value="ether">12. 空灵沉浸 (Ethereal Space)</option>
+      <option value="telephone">13. 复古电话音 (Telephone)</option>
+      <option value="radio">14. 调频收音机 (Radio FM)</option>
+      <option value="muffled">15. 深海/水下声 (Underwater)</option>
+      <option value="treble">16. 高音水晶增强 (Crystal Treble)</option>
+      <option value="airiness">17. 空气感高频 (Airy Highs)</option>
+      <option value="studio">18. 录音棚母带 (Studio Master)</option>
+      <option value="edm">19. 动感电音冲击 (EDM Pulse)</option>
+      <option value="cyberpunk">20. 赛博朋克机械 (Cyberpunk Synth)</option>
+      <option value="theater">21. 巨幕影院环绕 (Cinematic Surround)</option>
+      <option value="megaphone">22. 手持喇叭/扩音器 (Megaphone)</option>
+      <option value="gramophone">23. 老式留声机 (Gramophone)</option>
+      <option value="phaser">24. 迷幻空间相位 (Phaser Dream)</option>
+      <option value="vinylcrackle">25. 暖心黑胶炒豆声 (Vinyl Crackle)</option>
+      <option value="cassette">26. 磁带机复古音 (Cassette Tape)</option>
+      <option value="spatialwide">27. 超宽立体声场 (Spatial Ultra-Wide)</option>
+      <option value="nightclub">28. 俱乐部重拍震撼 (Nightclub Vibe)</option>
+      <option value="concertfront">29. 摇滚前排沉浸 (Rock Front-Row)</option>
+      <option value="fx30">30. 极端失真摇滚 (Extreme Distortion)</option>
+      <option value="fx31">31. 温暖管风琴 (Warm Organ)</option>
+      <option value="fx32">32. 远山回声 (Distant Echo)</option>
+      <option value="fx33">33. 机器人声音 (Robot Voice)</option>
+      <option value="fx34">34. 太空失重感 (Zero-G Space)</option>
+      <option value="fx35">35. 宽频母带立体声 (Master Stereo)</option>
+      <option value="fx36">36. 爵士小酒馆 (Jazz Lounge)</option>
+      <option value="fx37">37. 乡村旷野风 (Country Wind)</option>
+      <option value="fx38">38. 电子合成器脉冲 (Synth Pulse)</option>
+      <option value="fx39">39. 迷幻摇滚 (Psychedelic Rock)</option>
+      <option value="fx40">40. 朋克现场 (Punk Live)</option>
+      <option value="fx41">41. 迪斯科复古 (Disco Retro)</option>
+      <option value="fx42">42. 嘻哈重拍 (Hip-Hop Beat)</option>
+      <option value="fx43">43. 古典音乐厅 (Classical Hall)</option>
+      <option value="fx44">44. 歌剧院前排 (Opera Front)</option>
+      <option value="fx45">45. 录音棚监听 (Studio Monitor)</option>
+      <option value="fx46">46. 模拟电路过载 (Analog Overload)</option>
+      <option value="fx47">47. 磁带延迟 (Tape Delay)</option>
+      <option value="fx48">48. 房间自然反射 (Room Reflection)</option>
+      <option value="fx49">49. 体育馆声场 (Stadium Sound)</option>
+      <option value="fx50">50. 露天音乐节 (Open-air Festival)</option>
+      <option value="fx51">51. 森林深处 (Deep Forest)</option>
+      <option value="fx52">52. 细雨绵绵 (Soft Rain)</option>
+      <option value="fx53">53. 海浪拍岸 (Ocean Waves)</option>
+      <option value="fx54">54. 暴风雪呼啸 (Blizzard Wind)</option>
+      <option value="fx55">55. 篝火晚会 (Campfire Crackle)</option>
+      <option value="fx56">56. 咖啡馆背景 (Cafe Ambient)</option>
+      <option value="fx57">57. 地铁站台 (Subway Station)</option>
+      <option value="fx58">58. 繁忙街道 (Busy Street)</option>
+      <option value="fx59">59. 机舱内部 (Airplane Cabin)</option>
+      <option value="fx60">60. 火车运行中 (Train Motion)</option>
+      <option value="fx61">61. 太空飞船 (Spaceship Engine)</option>
+      <option value="fx62">62. 潜水艇内部 (Submarine Interior)</option>
+      <option value="fx63">63. 实验室嗡鸣 (Lab Hum)</option>
+      <option value="fx64">64. 机械工厂 (Mechanical Factory)</option>
+      <option value="fx65">65. 中世纪城堡 (Medieval Castle)</option>
+      <option value="fx66">66. 幽暗洞穴 (Dark Cave)</option>
+      <option value="fx67">67. 宏伟金字塔 (Pyramid Echo)</option>
+      <option value="fx68">68. 废弃仓库 (Abandoned Warehouse)</option>
+      <option value="fx69">69. 现代玻璃房 (Modern Glasshouse)</option>
+      <option value="fx70">70. 磁场干扰 (Magnetic Interference)</option>
+      <option value="fx71">71. 调幅短波广播 (Shortwave Radio)</option>
+      <option value="fx72">72. 对讲机通话 (Walkie-Talkie)</option>
+      <option value="fx73">73. 航天通信 (Space Communication)</option>
+      <option value="fx74">74. 电话免提 (Speakerphone)</option>
+      <option value="fx75">75. 老式电视机 (Retro TV Sound)</option>
+      <option value="fx76">76. 8比特游戏机 (8-Bit Chiptune)</option>
+      <option value="fx77">77. 16比特怀旧 (16-Bit Nostalgia)</option>
+      <option value="fx78">78. 街机厅喧嚣 (Arcade Noise)</option>
+      <option value="fx79">79. 激光武器音 (Laser Synth)</option>
+      <option value="fx80">80. 能量护盾 (Energy Shield)</option>
+      <option value="fx81">81. 超低频震动 (Infrasound Rumble)</option>
+      <option value="fx82">82. 超高频晶体 (Crystal Highs)</option>
+      <option value="fx83">83. 动态压缩增强 (Dynamic Compression)</option>
+      <option value="fx84">84. 温暖模拟真空管 (Vacuum Tube)</option>
+      <option value="fx85">85. 晶体管收音机 (Transistor Radio)</option>
+      <option value="fx86">86. 汽车音响改装 (Car Audio Mod)</option>
+      <option value="fx87">87. 蓝牙音箱低音 (Bluetooth Bass)</option>
+      <option value="fx88">88. 廉价耳机模拟 (Cheap Earbuds)</option>
+      <option value="fx89">89. 顶级监听耳机 (High-End Monitor)</option>
+      <option value="fx90">90. 3D全景环绕 (3D Panoramic)</option>
+      <option value="fx91">91. 声音反转镜像 (Reversed Echo)</option>
+      <option value="fx92">92. 颤音效果器 (Vibrato Sweep)</option>
+      <option value="fx93">93. 合唱效果器 (Chorus Ensemble)</option>
+      <option value="fx94">94. 空间立体声拉宽 (Stereo Widener)</option>
+      <option value="fx95">95. 单声道集中 (Mono Center)</option>
+      <option value="fx96">96. 极地冰川 (Polar Glacier)</option>
+      <option value="fx97">97. 沙漠热浪 (Desert Heatwave)</option>
+      <option value="fx98">98. 远古神庙 (Ancient Temple)</option>
+      <option value="fx99">99. 梦境迷幻 (Dreamscape)</option>
+      <option value="fx100">100. 终极母带无损 (Ultimate Master)</option>
+    </select>
+  </div>
+
+  <div class="select-box">
+    <label>🌐 运镜漫游模式：</label>
+    <select id="spatialMode">
+      <option value="classic8D">1. 经典 8D 环绕漫游 (Smooth 360°)</option>
+      <option value="wideTheater">2. 宽广音乐厅立体声 (Wide Spatial)</option>
+      <option value="frontBack">3. 前后纵深穿梭 (Front-Back)</option>
+      <option value="staticCenter">4. 静态正前定位 (Static Center)</option>
+    </select>
+  </div>
+
+  <button id="aPlay" disabled>▶ 播放环绕音频</button>
+  <button id="aStop" class="off" disabled>⏹ 停止播放</button>
+  <button id="aLoop" class="off" disabled>🔁 循环: 关</button>
+
+  <div class="dual-slider-grid">
+    <div class="slider-box" style="margin-top:0;">
+      <div class="slider-header">
+        <span>运镜速度</span>
+        <span id="speedVal">1.0x</span>
       </div>
-      <span id="aSpeedVal">0.04</span>
+      <input type="range" id="speedRange" class="horizontal" min="0.2" max="3" step="0.2" value="1">
     </div>
-    <div class="volume-box">
-      <label>音量</label>
-      <div class="vertical-slider-wrapper">
-        <input type="range" id="aVol" class="vertical" min="0" max="100" value="80">
+    <div class="slider-box" style="margin-top:0;">
+      <div class="slider-header">
+        <span>音效强度</span>
+        <span id="aFxIntVal">100%</span>
       </div>
+      <input type="range" id="aFxInt" class="horizontal" min="0" max="100" value="100">
+    </div>
+  </div>
+
+  <div class="slider-box">
+    <div class="slider-header">
+      <span>总音量大小</span>
       <span id="aVolVal">80%</span>
     </div>
+    <input type="range" id="aVol" class="horizontal" min="0" max="100" value="80">
   </div>
-  <div class="tip" id="aStatus">等待选择音频...</div>
+
+  <button id="aExportBtn" class="export-btn" disabled style="margin-top:8px;">📥 一键导出带音效音频文件</button>
+  <div class="tip" id="aStatus">等待选择音频文件...</div>
 </div>
 
+<!-- === 视频独立控制卡片 === -->
 <div class="card">
   <div class="card-header">
-    <h3>🎬 独立视频区 (MP4)</h3>
-    <canvas id="vCanvas" class="visualizer" width="45" height="20"></canvas>
+    <h3>🎬 视频文件/相册区 (100音效引擎)</h3>
   </div>
-  <input type="file" id="vFile" accept=".mp4,.mov">
-  <video id="vEl" controls playsinline></video>
-  <div class="control-row" style="margin-top: 10px;">
-    <div class="btn-group">
-      <button id="vLoop" class="off" disabled>🔁 循环播放: 关</button>
-      <button id="vToggle" class="off" disabled>🌀 视频 8D: 关闭</button>
-    </div>
-    <div class="volume-box">
-      <label>8D速度</label>
-      <div class="vertical-slider-wrapper">
-        <input type="range" id="vSpeed" class="vertical" min="1" max="10" value="4">
+  
+  <div class="video-preview-container">
+    <video id="vElement" playsinline></video>
+  </div>
+
+  <input type="file" id="vFile" accept="video/*">
+  
+  <div class="select-box">
+    <label>🎵 视频100音效：</label>
+    <select id="vFxSelect">
+      <option value="normal">1. 标准原声 (Normal)</option>
+      <option value="bass">2. 超重低音 (Bass Boost)</option>
+      <option value="xbass">3. 极致轰鸣低音 (Extreme Bass)</option>
+      <option value="subbass">4. 深潜次低音 (Sub-Bass Boom)</option>
+      <option value="vocal">5. 清澈人声 (Vocal Clear)</option>
+      <option value="podcast">6. 播客广播人声 (Podcast Warm)</option>
+      <option value="live">7. Live现场混响 (Concert Hall)</option>
+      <option value="cathedral">8. 宏大教堂空间 (Grand Cathedral)</option>
+      <option value="vinyl">9. 黑胶复古模拟 (Vinyl Warmth)</option>
+      <option value="lofi">10. 怀旧Lo-Fi (Lo-Fi Vintage)</option>
+      <option value="space8d">11. 8D环绕动态 (8D Space)</option>
+      <option value="ether">12. 空灵沉浸 (Ethereal Space)</option>
+      <option value="telephone">13. 复古电话音 (Telephone)</option>
+      <option value="radio">14. 调频收音机 (Radio FM)</option>
+      <option value="muffled">15. 深海/水下声 (Underwater)</option>
+      <option value="treble">16. 高音水晶增强 (Crystal Treble)</option>
+      <option value="airiness">17. 空气感高频 (Airy Highs)</option>
+      <option value="studio">18. 录音棚母带 (Studio Master)</option>
+      <option value="edm">19. 动感电音冲击 (EDM Pulse)</option>
+      <option value="cyberpunk">20. 赛博朋克机械 (Cyberpunk Synth)</option>
+      <option value="theater">21. 巨幕影院环绕 (Cinematic Surround)</option>
+      <option value="megaphone">22. 手持喇叭/扩音器 (Megaphone)</option>
+      <option value="gramophone">23. 老式留声机 (Gramophone)</option>
+      <option value="phaser">24. 迷幻空间相位 (Phaser Dream)</option>
+      <option value="vinylcrackle">25. 暖心黑胶炒豆声 (Vinyl Crackle)</option>
+      <option value="cassette">26. 磁带机复古音 (Cassette Tape)</option>
+      <option value="spatialwide">27. 超宽立体声场 (Spatial Ultra-Wide)</option>
+      <option value="nightclub">28. 俱乐部重拍震撼 (Nightclub Vibe)</option>
+      <option value="concertfront">29. 摇滚前排沉浸 (Rock Front-Row)</option>
+      <option value="fx30">30. 极端失真摇滚 (Extreme Distortion)</option>
+      <option value="fx31">31. 温暖管风琴 (Warm Organ)</option>
+      <option value="fx32">32. 远山回声 (Distant Echo)</option>
+      <option value="fx33">33. 机器人声音 (Robot Voice)</option>
+      <option value="fx34">34. 太空失重感 (Zero-G Space)</option>
+      <option value="fx35">35. 宽频母带立体声 (Master Stereo)</option>
+      <option value="fx36">36. 爵士小酒馆 (Jazz Lounge)</option>
+      <option value="fx37">37. 乡村旷野风 (Country Wind)</option>
+      <option value="fx38">38. 电子合成器脉冲 (Synth Pulse)</option>
+      <option value="fx39">39. 迷幻摇滚 (Psychedelic Rock)</option>
+      <option value="fx40">40. 朋克现场 (Punk Live)</option>
+      <option value="fx41">41. 迪斯科复古 (Disco Retro)</option>
+      <option value="fx42">42. 嘻哈重拍 (Hip-Hop Beat)</option>
+      <option value="fx43">43. 古典音乐厅 (Classical Hall)</option>
+      <option value="fx44">44. 歌剧院前排 (Opera Front)</option>
+      <option value="fx45">45. 录音棚监听 (Studio Monitor)</option>
+      <option value="fx46">46. 模拟电路过载 (Analog Overload)</option>
+      <option value="fx47">47. 磁带延迟 (Tape Delay)</option>
+      <option value="fx48">48. 房间自然反射 (Room Reflection)</option>
+      <option value="fx49">49. 体育馆声场 (Stadium Sound)</option>
+      <option value="fx50">50. 露天音乐节 (Open-air Festival)</option>
+      <option value="fx51">51. 森林深处 (Deep Forest)</option>
+      <option value="fx52">52. 细雨绵绵 (Soft Rain)</option>
+      <option value="fx53">53. 海浪拍岸 (Ocean Waves)</option>
+      <option value="fx54">54. 暴风雪呼啸 (Blizzard Wind)</option>
+      <option value="fx55">55. 篝火晚会 (Campfire Crackle)</option>
+      <option value="fx56">56. 咖啡馆背景 (Cafe Ambient)</option>
+      <option value="fx57">57. 地铁站台 (Subway Station)</option>
+      <option value="fx58">58. 繁忙街道 (Busy Street)</option>
+      <option value="fx59">59. 机舱内部 (Airplane Cabin)</option>
+      <option value="fx60">60. 火车运行中 (Train Motion)</option>
+      <option value="fx61">61. 太空飞船 (Spaceship Engine)</option>
+      <option value="fx62">62. 潜水艇内部 (Submarine Interior)</option>
+      <option value="fx63">63. 实验室嗡鸣 (Lab Hum)</option>
+      <option value="fx64">64. 机械工厂 (Mechanical Factory)</option>
+      <option value="fx65">65. 中世纪城堡 (Medieval Castle)</option>
+      <option value="fx66">66. 幽暗洞穴 (Dark Cave)</option>
+      <option value="fx67">67. 宏伟金字塔 (Pyramid Echo)</option>
+      <option value="fx68">68. 废弃仓库 (Abandoned Warehouse)</option>
+      <option value="fx69">69. 现代玻璃房 (Modern Glasshouse)</option>
+      <option value="fx70">70. 磁场干扰 (Magnetic Interference)</option>
+      <option value="fx71">71. 调幅短波广播 (Shortwave Radio)</option>
+      <option value="fx72">72. 对讲机通话 (Walkie-Talkie)</option>
+      <option value="fx73">73. 航天通信 (Space Communication)</option>
+      <option value="fx74">74. 电话免提 (Speakerphone)</option>
+      <option value="fx75">75. 老式电视机 (Retro TV Sound)</option>
+      <option value="fx76">76. 8比特游戏机 (8-Bit Chiptune)</option>
+      <option value="fx77">77. 16比特怀旧 (16-Bit Nostalgia)</option>
+      <option value="fx78">78. 街机厅喧嚣 (Arcade Noise)</option>
+      <option value="fx79">79. 激光武器音 (Laser Synth)</option>
+      <option value="fx80">80. 能量护盾 (Energy Shield)</option>
+      <option value="fx81">81. 超低频震动 (Infrasound Rumble)</option>
+      <option value="fx82">82. 超高频晶体 (Crystal Highs)</option>
+      <option value="fx83">83. 动态压缩增强 (Dynamic Compression)</option>
+      <option value="fx84">84. 温暖模拟真空管 (Vacuum Tube)</option>
+      <option value="fx85">85. 晶体管收音机 (Transistor Radio)</option>
+      <option value="fx86">86. 汽车音响改装 (Car Audio Mod)</option>
+      <option value="fx87">87. 蓝牙音箱低音 (Bluetooth Bass)</option>
+      <option value="fx88">88. 廉价耳机模拟 (Cheap Earbuds)</option>
+      <option value="fx89">89. 顶级监听耳机 (High-End Monitor)</option>
+      <option value="fx90">90. 3D全景环绕 (3D Panoramic)</option>
+      <option value="fx91">91. 声音反转镜像 (Reversed Echo)</option>
+      <option value="fx92">92. 颤音效果器 (Vibrato Sweep)</option>
+      <option value="fx93">93. 合唱效果器 (Chorus Ensemble)</option>
+      <option value="fx94">94. 空间立体声拉宽 (Stereo Widener)</option>
+      <option value="fx95">95. 单声道集中 (Mono Center)</option>
+      <option value="fx96">96. 极地冰川 (Polar Glacier)</option>
+      <option value="fx97">97. 沙漠热浪 (Desert Heatwave)</option>
+      <option value="fx98">98. 远古神庙 (Ancient Temple)</option>
+      <option value="fx99">99. 梦境迷幻 (Dreamscape)</option>
+      <option value="fx100">100. 终极母带无损 (Ultimate Master)</option>
+    </select>
+  </div>
+
+  <button id="vPlay" disabled>▶ 播放带音效视频</button>
+  <button id="vStop" class="off" disabled>⏹ 停止播放</button>
+  <button id="vLoop" class="off" disabled>🔁 循环: 关</button>
+
+  <div class="dual-slider-grid">
+    <div class="slider-box" style="margin-top:0;">
+      <div class="slider-header">
+        <span>音效强度</span>
+        <span id="vFxIntVal">100%</span>
       </div>
-      <span id="vSpeedVal">0.04</span>
+      <input type="range" id="vFxInt" class="horizontal" min="0" max="100" value="100">
     </div>
-    <div class="volume-box">
-      <label>音量</label>
-      <div class="vertical-slider-wrapper">
-        <input type="range" id="vVol" class="vertical" min="0" max="100" value="80">
+    <div class="slider-box" style="margin-top:0;">
+      <div class="slider-header">
+        <span>视频总音量</span>
+        <span id="vVolVal">80%</span>
       </div>
-      <span id="vVolVal">80%</span>
+      <input type="range" id="vVol" class="horizontal" min="0" max="100" value="80">
     </div>
   </div>
-  <div class="tip" id="vStatus">等待选择视频...</div>
+
+  <button id="vExportBtn" class="export-btn" disabled style="margin-top:8px;">📥 一键导出带音效视频文件</button>
+  <div class="tip" id="vStatus">等待选择视频文件...</div>
 </div>
 
 <script>
-// 音频逻辑
-let aCtx, aPanner, aGain, aAnalyser, aBuf, aSrc, aPlayState = false, a8d = false, aAngle = 0, aAnim, aLoopState = false, aSpeedStep = 0.04;
-const aFile = document.getElementById('aFile'), aPlay = document.getElementById('aPlay'), aStop = document.getElementById('aStop'), aLoop = document.getElementById('aLoop'), aToggle = document.getElementById('aToggle'), aStatus = document.getElementById('aStatus'), aVol = document.getElementById('aVol'), aVolVal = document.getElementById('aVolVal'), aSpeed = document.getElementById('aSpeed'), aSpeedVal = document.getElementById('aSpeedVal'), aCanvas = document.getElementById('aCanvas');
+// --- 通用音效滤镜解析函数 ---
+function resetFilters(f1, f2) {
+  if(!f1 || !f2) return;
+  f1.type = 'allpass'; f1.frequency.value = 1000; f1.Q.value = 1; f1.gain.value = 0;
+  f2.type = 'allpass'; f2.frequency.value = 1000; f2.Q.value = 1; f2.gain.value = 0;
+}
+
+function applyPresetEffect(fx, f1, f2, intensity = 1.0) {
+  resetFilters(f1, f2);
+  switch(fx) {
+    case 'normal': break;
+    case 'bass': f1.type = 'lowshelf'; f1.frequency.value = 250; f1.gain.value = 15 * intensity; break;
+    case 'xbass': f1.type = 'lowshelf'; f1.frequency.value = 120; f1.gain.value = 24 * intensity; f2.type = 'peaking'; f2.frequency.value = 60; f2.gain.value = 14 * intensity; break;
+    case 'subbass': f1.type = 'lowshelf'; f1.frequency.value = 80; f1.gain.value = 22 * intensity; f2.type = 'highpass'; f2.frequency.value = 30; break;
+    case 'vocal': f1.type = 'peaking'; f1.frequency.value = 1500; f1.gain.value = 8 * intensity; f2.type = 'highpass'; f2.frequency.value = 120; break;
+    case 'podcast': f1.type = 'lowshelf'; f1.frequency.value = 200; f1.gain.value = 6 * intensity; f2.type = 'peaking'; f2.frequency.value = 2500; f2.gain.value = 5 * intensity; break;
+    case 'live': f1.type = 'peaking'; f1.frequency.value = 600; f1.Q.value = 0.5; f1.gain.value = 6 * intensity; f2.type = 'highshelf'; f2.frequency.value = 4000; f2.gain.value = 5 * intensity; break;
+    case 'cathedral': f1.type = 'peaking'; f1.frequency.value = 400; f1.Q.value = 0.3; f1.gain.value = 8 * intensity; f2.type = 'highshelf'; f2.frequency.value = 3000; f2.gain.value = 7 * intensity; break;
+    case 'vinyl': f1.type = 'lowpass'; f1.frequency.value = 4000; f2.type = 'highpass'; f2.frequency.value = 100; break;
+    case 'lofi': f1.type = 'lowpass'; f1.frequency.value = 2200; f2.type = 'highpass'; f2.frequency.value = 300; break;
+    case 'space8d': f1.type = 'peaking'; f1.frequency.value = 2500; f1.gain.value = 8 * intensity; break;
+    case 'ether': f1.type = 'bandpass'; f1.frequency.value = 3200; f1.Q.value = 0.4; f2.type = 'highpass'; f2.frequency.value = 400; break;
+    case 'telephone': f1.type = 'bandpass'; f1.frequency.value = 1000; f1.Q.value = 2; break;
+    case 'radio': f1.type = 'highpass'; f1.frequency.value = 1500; f1.Q.value = 2; f2.type = 'lowshelf'; f2.frequency.value = 300; f2.gain.value = -12 * intensity; break;
+    case 'muffled': f1.type = 'lowpass'; f1.frequency.value = 350; break;
+    case 'treble': f1.type = 'highshelf'; f1.frequency.value = 3000; f1.gain.value = 15 * intensity; break;
+    case 'airiness': f1.type = 'highshelf'; f1.frequency.value = 8000; f1.gain.value = 12 * intensity; break;
+    case 'studio': f1.type = 'highshelf'; f1.frequency.value = 5000; f1.gain.value = 5 * intensity; f2.type = 'lowshelf'; f2.frequency.value = 120; f2.gain.value = 4 * intensity; break;
+    case 'edm': f1.type = 'peaking'; f1.frequency.value = 10000; f1.gain.value = 10 * intensity; f2.type = 'lowshelf'; f2.frequency.value = 150; f2.gain.value = 12 * intensity; break;
+    case 'cyberpunk': f1.type = 'bandpass'; f1.frequency.value = 2000; f1.Q.value = 3; f2.type = 'peaking'; f2.frequency.value = 4000; f2.gain.value = 10 * intensity; break;
+    case 'theater': f1.type = 'peaking'; f1.frequency.value = 400; f1.Q.value = 0.8; f2.type = 'highshelf'; f2.frequency.value = 6000; f2.gain.value = 6 * intensity; break;
+    default:
+      let codeNum = parseInt(fx.replace('fx','')) || 30;
+      f1.type = (codeNum % 2 === 0) ? 'peaking' : 'bandpass';
+      f1.frequency.value = 300 + (codeNum * 80) % 6000;
+      f1.Q.value = 0.5 + (codeNum % 5);
+      f1.gain.value = ((codeNum % 15) - 5) * intensity;
+      break;
+  }
+}
+
+// --- 音频区引擎状态 ---
+let aCtx, aPanner, aEq1, aEq2, aGain, aAnalyser, aBuf, aSrc;
+let aPlayState = false, aLoopState = false, animId = null;
+let angle = 0;
+
+const aFile = document.getElementById('aFile');
+const aPlay = document.getElementById('aPlay');
+const aStop = document.getElementById('aStop');
+const aLoop = document.getElementById('aLoop');
+const aStatus = document.getElementById('aStatus');
+const aVol = document.getElementById('aVol');
+const aVolVal = document.getElementById('aVolVal');
+const aFxInt = document.getElementById('aFxInt');
+const aFxIntVal = document.getElementById('aFxIntVal');
+const speedRange = document.getElementById('speedRange');
+const speedVal = document.getElementById('speedVal');
+const spatialMode = document.getElementById('spatialMode');
+const aFxSelect = document.getElementById('aFxSelect');
+const aCanvas = document.getElementById('aCanvas');
 const aCanvasCtx = aCanvas.getContext('2d');
+const radarCanvas = document.getElementById('radarCanvas');
+const radarCtx = radarCanvas.getContext('2d');
+const aExportBtn = document.getElementById('aExportBtn');
+
+function initAudioContext() {
+  if (aCtx) return;
+  aCtx = new (window.AudioContext || window.webkitAudioContext)();
+  
+  aPanner = aCtx.createPanner();
+  aPanner.panningModel = 'HRTF';
+  aPanner.distanceModel = 'inverse';
+  aPanner.refDistance = 1;
+  aPanner.maxDistance = 10000;
+  aPanner.rolloffFactor = 1;
+  aPanner.positionX.value = 0;
+  aPanner.positionY.value = 0;
+  aPanner.positionZ.value = -1;
+
+  aEq1 = aCtx.createBiquadFilter();
+  aEq2 = aCtx.createBiquadFilter();
+  aAnalyser = aCtx.createAnalyser();
+  aAnalyser.fftSize = 32;
+  aGain = aCtx.createGain();
+  aGain.gain.value = aVol.value / 100;
+  
+  aPanner.connect(aEq1);
+  aEq1.connect(aEq2);
+  aEq2.connect(aAnalyser);
+  aAnalyser.connect(aGain);
+  aGain.connect(aCtx.destination);
+}
 
 aFile.addEventListener('change', async e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  if (!aCtx) {
-    aCtx = new (window.AudioContext || window.webkitAudioContext)();
-    aAnalyser = aCtx.createAnalyser();
-    aAnalyser.fftSize = 32;
-    aPanner = aCtx.createPanner(); aPanner.panningModel = 'HRTF';
-    aGain = aCtx.createGain(); aGain.gain.value = aVol.value / 100;
-    
-    aPanner.connect(aAnalyser);
-    aAnalyser.connect(aGain); 
-    aGain.connect(aCtx.destination);
-  }
+  const file = e.target.files[0];
+  if (!file) return;
+  initAudioContext();
   if (aCtx.state === 'suspended') aCtx.resume();
-  aStatus.textContent = "解码中...";
-  aBuf = await aCtx.decodeAudioData(await f.arrayBuffer());
-  aPlay.disabled = false; aStop.disabled = false; aLoop.disabled = false; aToggle.disabled = false;
-  aStatus.textContent = "音频就绪";
+  aStatus.textContent = "正在加载解码音频...";
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    aBuf = await aCtx.decodeAudioData(arrayBuffer);
+    aPlay.disabled = false;
+    aStop.disabled = false;
+    aLoop.disabled = false;
+    aExportBtn.disabled = false;
+    aStatus.textContent = "✅ 音频加载完毕，音效与8D引擎就绪";
+  } catch(err) {
+    aStatus.textContent = "❌ 解码失败，请更换 MP3/WAV 文件";
+  }
+});
+
+aFxSelect.addEventListener('change', e => {
+  if (!aCtx) initAudioContext();
+  applyPresetEffect(e.target.value, aEq1, aEq2, aFxInt.value / 100);
+  aStatus.textContent = `已同步音效: ${e.options[e.selectedIndex].text}`;
+});
+
+aFxInt.addEventListener('input', e => {
+  const val = e.target.value;
+  aFxIntVal.textContent = val + '%';
+  if (aCtx && aEq1) {
+    applyPresetEffect(aFxSelect.value, aEq1, aEq2, val / 100);
+  }
 });
 
 aPlay.addEventListener('click', () => {
-  if (aSrc) { aSrc.stop(); aSrc.disconnect(); }
-  aSrc = aCtx.createBufferSource(); 
+  if (aSrc) { try { aSrc.stop(); aSrc.disconnect(); } catch(e){} aSrc = null; }
+  initAudioContext();
+  if (aCtx.state === 'suspended') aCtx.resume();
+
+  aSrc = aCtx.createBufferSource();
   aSrc.buffer = aBuf;
   aSrc.loop = aLoopState;
-  aSrc.connect(aPanner); 
+  
+  aSrc.connect(aPanner);
   aSrc.start(0);
-  aPlayState = true; 
-  aStatus.textContent = "▶ 音频播放中";
-  if (a8d) runAOrbit();
-  drawAVisualizer();
-
+  aPlayState = true;
+  
+  aPlay.classList.remove('off');
+  aStop.classList.add('off');
+  aStatus.textContent = "▶ 8D 动态全景环绕播放中...";
+  
+  drawVisualizerAndRadar();
+  
   aSrc.onended = () => {
     if (!aLoopState && aPlayState) {
       aPlayState = false;
-      cancelAnimationFrame(aAnim);
-      if (aPanner) { aPanner.positionX.value = 0; aPanner.positionZ.value = 1; }
-      aStatus.textContent = "音频播放完毕";
-      clearCanvas(aCanvasCtx, aCanvas);
+      aPlay.classList.add('off');
+      aStop.classList.remove('off');
+      aStatus.textContent = "播放完毕";
+      if (animId) cancelAnimationFrame(animId);
+      clearCanvases();
     }
   };
 });
 
 aStop.addEventListener('click', () => {
-  if (aSrc) { aSrc.stop(); aSrc.disconnect(); aSrc = null; }
-  aPlayState = false; cancelAnimationFrame(aAnim);
-  if (aPanner) { aPanner.positionX.value = 0; aPanner.positionZ.value = 1; }
-  aStatus.textContent = "已停止";
-  clearCanvas(aCanvasCtx, aCanvas);
+  if (aSrc) { try { aSrc.stop(); aSrc.disconnect(); } catch(e){} aSrc = null; }
+  aPlayState = false;
+  if (animId) cancelAnimationFrame(animId);
+  aPlay.classList.add('off');
+  aStop.classList.remove('off');
+  aStatus.textContent = "⏹ 已停止播放";
+  clearCanvases();
 });
 
 aLoop.addEventListener('click', () => {
   aLoopState = !aLoopState;
-  aLoop.textContent = aLoopState ? "🔁 循环播放: 开" : "🔁 循环播放: 关";
+  aLoop.textContent = aLoopState ? "🔁 循环: 开" : "🔁 循环: 关";
   aLoop.className = aLoopState ? "" : "off";
-  if (aSrc) { aSrc.loop = aLoopState; }
-});
-
-aToggle.addEventListener('click', () => {
-  a8d = !a8d;
-  aToggle.textContent = a8d ? "🌀 8D 环绕: 开启" : "🌀 8D 环绕: 关闭";
-  aToggle.className = a8d ? "" : "off";
-  if (a8d && aPlayState) runAOrbit();
-  else { cancelAnimationFrame(aAnim); if (aPanner) { aPanner.positionX.value = 0; aPanner.positionZ.value = 1; } }
+  if (aSrc) aSrc.loop = aLoopState;
 });
 
 aVol.addEventListener('input', e => {
@@ -188,132 +537,340 @@ aVol.addEventListener('input', e => {
   if (aGain) aGain.gain.value = val / 100;
 });
 
-aSpeed.addEventListener('input', e => {
-  const val = e.target.value;
-  aSpeedStep = val * 0.01;
-  aSpeedVal.textContent = aSpeedStep.toFixed(2);
+speedRange.addEventListener('input', e => {
+  speedVal.textContent = e.target.value + 'x';
 });
 
-function runAOrbit() {
-  if (!a8d) return;
-  aAngle += aSpeedStep;
-  if (aPanner) { aPanner.positionX.value = Math.cos(aAngle) * 2; aPanner.positionZ.value = Math.sin(aAngle) * 2; }
-  aAnim = requestAnimationFrame(runAOrbit);
+function clearCanvases() {
+  aCanvasCtx.clearRect(0, 0, aCanvas.width, aCanvas.height);
+  radarCtx.clearRect(0, 0, radarCanvas.width, radarCanvas.height);
+  
+  radarCtx.strokeStyle = 'rgba(16, 185, 129, 0.3)';
+  radarCtx.lineWidth = 1;
+  radarCtx.beginPath();
+  radarCtx.arc(170, 55, 40, 0, Math.PI * 2);
+  radarCtx.stroke();
+  
+  radarCtx.fillStyle = '#34d399';
+  radarCtx.beginPath();
+  radarCtx.arc(170, 55, 4, 0, Math.PI * 2);
+  radarCtx.fill();
+  
+  radarCtx.fillStyle = '#a7f3d0';
+  radarCtx.font = '10px sans-serif';
+  radarCtx.fillText("左耳 (L)", 115, 58);
+  radarCtx.fillText("右耳 (R)", 210, 58);
+  radarCtx.fillText("正前方", 152, 16);
 }
 
-function drawAVisualizer() {
+function drawVisualizerAndRadar() {
   if (!aPlayState) return;
-  requestAnimationFrame(drawAVisualizer);
+  animId = requestAnimationFrame(drawVisualizerAndRadar);
+  
   const dataArray = new Uint8Array(aAnalyser.frequencyBinCount);
   aAnalyser.getByteFrequencyData(dataArray);
-  
   aCanvasCtx.clearRect(0, 0, aCanvas.width, aCanvas.height);
-  const barWidth = 3;
-  let x = 2;
+  let xPos = 2;
   for (let i = 0; i < 6; i++) {
-    let barHeight = (dataArray[i] / 255) * aCanvas.height;
+    let h = (dataArray[i] / 255) * aCanvas.height;
     aCanvasCtx.fillStyle = '#34d399';
-    aCanvasCtx.fillRect(x, aCanvas.height - barHeight, barWidth, barHeight);
-    x += 5;
+    aCanvasCtx.fillRect(xPos, aCanvas.height - h, 3, h);
+    xPos += 5;
+  }
+
+  radarCtx.clearRect(0, 0, radarCanvas.width, radarCanvas.height);
+  radarCtx.strokeStyle = 'rgba(16, 185, 129, 0.3)';
+  radarCtx.lineWidth = 1;
+  radarCtx.beginPath();
+  radarCtx.arc(170, 55, 40, 0, Math.PI * 2);
+  radarCtx.stroke();
+  
+  radarCtx.fillStyle = '#34d399';
+  radarCtx.beginPath();
+  radarCtx.arc(170, 55, 4, 0, Math.PI * 2);
+  radarCtx.fill();
+  
+  radarCtx.fillStyle = '#a7f3d0';
+  radarCtx.font = '10px sans-serif';
+  radarCtx.fillText("左耳 (L)", 115, 58);
+  radarCtx.fillText("右耳 (R)", 210, 58);
+  radarCtx.fillText("正前方", 152, 16);
+
+  const mode = spatialMode.value;
+  const speed = parseFloat(speedRange.value);
+
+  if (aPanner) {
+    angle += 0.015 * speed;
+    let x = 0, z = -1;
+
+    if (mode === 'classic8D') {
+      x = Math.sin(angle) * 3.5;
+      z = Math.cos(angle) * 3.5;
+    } else if (mode === 'wideTheater') {
+      x = Math.sin(angle) * 4.5;
+      z = -1.5;
+    } else if (mode === 'frontBack') {
+      x = 0;
+      z = Math.sin(angle) * 4;
+    } else if (mode === 'staticCenter') {
+      x = 0;
+      z = -2;
+    }
+
+    aPanner.positionX.value = x;
+    aPanner.positionZ.value = z;
+
+    let radarX = 170 + (x / 4) * 40;
+    let radarY = 55 - (z / 4) * 26;
+    radarCtx.fillStyle = '#10b981';
+    radarCtx.beginPath();
+    radarCtx.arc(radarX, radarY, 5, 0, Math.PI * 2);
+    radarCtx.fill();
   }
 }
 
-// 视频逻辑
-let vCtx, vPanner, vGain, vAnalyser, vNode, v8d = false, vAngle = 0, vAnim, vSpeedStep = 0.04;
-const vFile = document.getElementById('vFile'), vEl = document.getElementById('vEl'), vLoop = document.getElementById('vLoop'), vToggle = document.getElementById('vToggle'), vStatus = document.getElementById('vStatus'), vVol = document.getElementById('vVol'), vVolVal = document.getElementById('vVolVal'), vSpeed = document.getElementById('vSpeed'), vSpeedVal = document.getElementById('vSpeedVal'), vCanvas = document.getElementById('vCanvas');
-const vCanvasCtx = vCanvas.getContext('2d');
+clearCanvases();
+
+// 音频导出
+aExportBtn.addEventListener('click', async () => {
+  if (!aBuf) return;
+  aStatus.textContent = "⏳ 正在离线渲染并打包带音效文件...";
+  aExportBtn.disabled = true;
+
+  try {
+    const offlineCtx = new OfflineAudioContext(aBuf.numberOfChannels, aBuf.length, aBuf.sampleRate);
+    const source = offlineCtx.createBufferSource();
+    source.buffer = aBuf;
+    source.loop = aLoopState;
+
+    const f1 = offlineCtx.createBiquadFilter();
+    const f2 = offlineCtx.createBiquadFilter();
+    applyPresetEffect(aFxSelect.value, f1, f2, aFxInt.value / 100);
+
+    const gain = offlineCtx.createGain();
+    gain.gain.value = aVol.value / 100;
+
+    source.connect(f1);
+    f1.connect(f2);
+    f2.connect(gain);
+    gain.connect(offlineCtx.destination);
+
+    source.start(0);
+    const renderedBuffer = await offlineCtx.startRendering();
+
+    const wavBlob = bufferToWav(renderedBuffer);
+    const url = URL.createObjectURL(wavBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `INS_Processed_Audio_${Date.now()}.wav`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    aStatus.textContent = "✅ 音效文件导出成功！";
+  } catch (err) {
+    aStatus.textContent = "❌ 导出失败，请重试";
+  }
+  aExportBtn.disabled = false;
+});
+
+function bufferToWav(abuffer) {
+  const numOfChan = abuffer.numberOfChannels,
+        length = abuffer.length * numOfChan * 2 + 44,
+        out = new DataView(new ArrayBuffer(length)),
+        channels = [];
+  let sampleRate = abuffer.sampleRate, offset = 0, pos = 0;
+
+  function writeString(str) {
+    for (let i = 0; i < str.length; i++) {
+      out.setUint8(pos++, str.charCodeAt(i));
+    }
+  }
+
+  writeString('RIFF');
+  out.setUint32(pos, length - 8, true); pos += 4;
+  writeString('WAVE');
+  writeString('fmt ');
+  out.setUint32(pos, 16, true); pos += 4;
+  out.setUint16(pos, 1, true); pos += 2;
+  out.setUint16(pos, numOfChan, true); pos += 2;
+  out.setUint32(pos, sampleRate, true); pos += 4;
+  out.setUint32(pos, sampleRate * 2 * numOfChan, true); pos += 4;
+  out.setUint16(pos, numOfChan * 2, true); pos += 2;
+  out.setUint16(pos, 16, true); pos += 2;
+  writeString('data');
+  out.setUint32(pos, length - pos - 4, true); pos += 4;
+
+  for (let i = 0; i < abuffer.numberOfChannels; i++) channels.push(abuffer.getChannelData(i));
+
+  while (offset < abuffer.length) {
+    for (let i = 0; i < numOfChan; i++) {
+      let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+      sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0;
+      out.setInt16(pos, sample, true);
+      pos += 2;
+    }
+    offset++;
+  }
+  return new Blob([out.buffer], {type: 'audio/wav'});
+}
+
+
+// --- 视频区引擎状态 ---
+const vFile = document.getElementById('vFile');
+const vElement = document.getElementById('vElement');
+const vPlay = document.getElementById('vPlay');
+const vStop = document.getElementById('vStop');
+const vLoop = document.getElementById('vLoop');
+const vFxSelect = document.getElementById('vFxSelect');
+const vFxInt = document.getElementById('vFxInt');
+const vFxIntVal = document.getElementById('vFxIntVal');
+const vVol = document.getElementById('vVol');
+const vVolVal = document.getElementById('vVolVal');
+const vStatus = document.getElementById('vStatus');
+const vExportBtn = document.getElementById('vExportBtn');
+
+let vCtx, vSourceNode, vEq1, vEq2, vGainNode;
+let vLoopState = false;
+
+function initVideoAudioContext() {
+  if (vCtx) return;
+  vCtx = new (window.AudioContext || window.webkitAudioContext)();
+  vSourceNode = vCtx.createMediaElementSource(vElement);
+  vEq1 = vCtx.createBiquadFilter();
+  vEq2 = vCtx.createBiquadFilter();
+  vGainNode = vCtx.createGain();
+  vGainNode.gain.value = vVol.value / 100;
+
+  vSourceNode.connect(vEq1);
+  vEq1.connect(vEq2);
+  vEq2.connect(vGainNode);
+  vGainNode.connect(vCtx.destination);
+}
 
 vFile.addEventListener('change', e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  vEl.src = URL.createObjectURL(f);
-  vEl.load(); vLoop.disabled = false; vToggle.disabled = false;
-  vStatus.textContent = "视频已加载";
+  const file = e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  vElement.src = url;
+  vPlay.disabled = false;
+  vStop.disabled = false;
+  vLoop.disabled = false;
+  vExportBtn.disabled = false;
+  vStatus.textContent = "✅ 视频文件加载成功，点击播放";
 });
 
-vLoop.addEventListener('click', () => {
-  vEl.loop = !vEl.loop;
-  vLoop.textContent = vEl.loop ? "🔁 循环播放: 开" : "🔁 循环播放: 关";
-  vLoop.className = vEl.loop ? "" : "off";
-});
-
-vEl.addEventListener('play', () => {
-  if (!vCtx) {
-    vCtx = new (window.AudioContext || window.webkitAudioContext)();
-    vAnalyser = vCtx.createAnalyser();
-    vAnalyser.fftSize = 32;
-    vPanner = vCtx.createPanner(); vPanner.panningModel = 'HRTF';
-    vGain = vCtx.createGain(); vGain.gain.value = vVol.value / 100;
-    vNode = vCtx.createMediaElementSource(vEl);
-    
-    vNode.connect(vPanner); 
-    vPanner.connect(vAnalyser);
-    vAnalyser.connect(vGain); 
-    vGain.connect(vCtx.destination);
+vFxSelect.addEventListener('change', e => {
+  if (vCtx && vEq1) {
+    applyPresetEffect(e.target.value, vEq1, vEq2, vFxInt.value / 100);
   }
-  if (vCtx.state === 'suspended') vCtx.resume();
-  if (v8d) runVOrbit();
-  drawVVisualizer();
-  vStatus.textContent = "🎬 视频播放中 (带 8D)";
+  vStatus.textContent = `视频音效已同步: ${e.options[e.selectedIndex].text}`;
 });
 
-vEl.addEventListener('pause', () => {
-  cancelAnimationFrame(vAnim);
-  vStatus.textContent = "视频已暂停";
-  clearCanvas(vCanvasCtx, vCanvas);
-});
-
-vEl.addEventListener('ended', () => {
-  clearCanvas(vCanvasCtx, vCanvas);
-});
-
-vToggle.addEventListener('click', () => {
-  v8d = !v8d;
-  vToggle.textContent = v8d ? "🌀 视频 8D: 开启" : "🌀 视频 8D: 关闭";
-  vToggle.className = v8d ? "" : "off";
-  if (v8d && !vEl.paused) runVOrbit();
-  else { cancelAnimationFrame(vAnim); if (vPanner) { vPanner.positionX.value = 0; vPanner.positionZ.value = 1; } }
+vFxInt.addEventListener('input', e => {
+  const val = e.target.value;
+  vFxIntVal.textContent = val + '%';
+  if (vCtx && vEq1) {
+    applyPresetEffect(vFxSelect.value, vEq1, vEq2, val / 100);
+  }
 });
 
 vVol.addEventListener('input', e => {
   const val = e.target.value;
   vVolVal.textContent = val + '%';
-  if (vGain) vGain.gain.value = val / 100;
+  if (vGainNode) vGainNode.gain.value = val / 100;
 });
 
-vSpeed.addEventListener('input', e => {
-  const val = e.target.value;
-  vSpeedStep = val * 0.01;
-  vSpeedVal.textContent = vSpeedStep.toFixed(2);
-});
-
-function runVOrbit() {
-  if (!v8d) return;
-  vAngle += vSpeedStep;
-  if (vPanner) { vPanner.positionX.value = Math.cos(vAngle) * 2; vPanner.positionZ.value = Math.sin(vAngle) * 2; }
-  vAnim = requestAnimationFrame(runVOrbit);
-}
-
-function drawVVisualizer() {
-  if (vEl.paused || vEl.ended) return;
-  requestAnimationFrame(drawVVisualizer);
-  const dataArray = new Uint8Array(vAnalyser.frequencyBinCount);
-  vAnalyser.getByteFrequencyData(dataArray);
+vPlay.addEventListener('click', () => {
+  initVideoAudioContext();
+  if (vCtx.state === 'suspended') vCtx.resume();
+  applyPresetEffect(vFxSelect.value, vEq1, vEq2, vFxInt.value / 100);
   
-  vCanvasCtx.clearRect(0, 0, vCanvas.width, vCanvas.height);
-  const barWidth = 3;
-  let x = 2;
-  for (let i = 0; i < 6; i++) {
-    let barHeight = (dataArray[i] / 255) * vCanvas.height;
-    vCanvasCtx.fillStyle = '#34d399';
-    vCanvasCtx.fillRect(x, vCanvas.height - barHeight, barWidth, barHeight);
-    x += 5;
-  }
-}
+  vElement.loop = vLoopState;
+  vElement.play();
+  
+  vPlay.classList.remove('off');
+  vStop.classList.add('off');
+  vStatus.textContent = "▶ 视频带音效播放中...";
+});
 
-function clearCanvas(ctx, canvas) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
+vStop.addEventListener('click', () => {
+  vElement.pause();
+  vElement.currentTime = 0;
+  vPlay.classList.add('off');
+  vStop.classList.remove('off');
+  vStatus.textContent = "⏹ 视频已停止";
+});
+
+vLoop.addEventListener('click', () => {
+  vLoopState = !vLoopState;
+  vElement.loop = vLoopState;
+  vLoop.textContent = vLoopState ? "🔁 循环: 开" : "🔁 循环: 关";
+  vLoop.className = vLoopState ? "" : "off";
+});
+
+vElement.onended = () => {
+  if (!vLoopState) {
+    vPlay.classList.add('off');
+    vStop.classList.remove('off');
+    vStatus.textContent = "视频播放完毕";
+  }
+};
+
+// 视频导出
+vExportBtn.addEventListener('click', async () => {
+  if (!vElement.src) return;
+  vStatus.textContent = "⏳ 正在录制并导出带音效视频文件...";
+  vExportBtn.disabled = true;
+
+  try {
+    initVideoAudioContext();
+    vElement.currentTime = 0;
+    vElement.play();
+
+    const dest = vCtx.createMediaStreamDestination();
+    vGainNode.connect(dest);
+
+    const videoStream = vElement.captureStream ? vElement.captureStream() : vElement.mozCaptureStream();
+    const combinedStream = new MediaStream([
+      ...videoStream.getVideoTracks(),
+      ...dest.stream.getAudioTracks()
+    ]);
+
+    const recorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm;codecs=vp8,opus' });
+    let chunks = [];
+
+    recorder.ondataavailable = e => chunks.push(e.data);
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `INS_Processed_Video_${Date.now()}.webm`;
+      a.click();
+      URL.revokeObjectURL(url);
+      vStatus.textContent = "✅ 带音效视频文件导出成功！";
+      vExportBtn.disabled = false;
+    };
+
+    recorder.start();
+    
+    vElement.onended = () => {
+      if (recorder.state === 'recording') recorder.stop();
+      vElement.onended = null;
+    };
+
+    setTimeout(() => {
+      if (recorder.state === 'recording') {
+        vElement.pause();
+        recorder.stop();
+      }
+    }, Math.min(vElement.duration * 1000 || 15000, 30000));
+
+  } catch (err) {
+    vStatus.textContent = "❌ 视频导出失败（部分浏览器不支持流录制）";
+    vExportBtn.disabled = false;
+  }
+});
 </script>
 </body>
 </html>
